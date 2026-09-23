@@ -27,7 +27,7 @@ public class HealthBehaviorAnimationController : MonoBehaviour
     private int lastSteps = -1;
     private float lastSleepHours = -1f;
     private RuntimeAnimatorController lastAppliedController;
-
+    private bool hasWarnedAboutMissingAnimator;
     private enum HealthRank
     {
         Bad,
@@ -44,6 +44,11 @@ public class HealthBehaviorAnimationController : MonoBehaviour
     private void Reset()
     {
         targetAnimator = GetComponent<Animator>();
+        if (targetAnimator == null)
+        {
+            targetAnimator = GetComponentInChildren<Animator>(true);
+        }
+
 #if UNITY_EDITOR
         AutoAssignControllersInEditor();
 #endif
@@ -51,11 +56,12 @@ public class HealthBehaviorAnimationController : MonoBehaviour
 
     private void Awake()
     {
-        if (targetAnimator == null)
-        {
-            targetAnimator = GetComponent<Animator>();
-        }
+        EnsureAnimator();
+        ApplyBehavior();
+    }
 
+    private void OnEnable()
+    {
         ApplyBehavior();
     }
 
@@ -87,6 +93,13 @@ public class HealthBehaviorAnimationController : MonoBehaviour
         }
     }
 
+    public void SetHealthData(int newSteps, float newSleepHours)
+    {
+        steps = Mathf.Max(0, newSteps);
+        sleepHours = Mathf.Max(0f, newSleepHours);
+        ApplyBehavior();
+    }
+
     private void ApplyBehavior()
     {
         RuntimeAnimatorController selectedController = UpdateRanksAndController();
@@ -94,27 +107,54 @@ public class HealthBehaviorAnimationController : MonoBehaviour
         lastSteps = steps;
         lastSleepHours = sleepHours;
 
+        EnsureAnimator();
         if (targetAnimator == null || selectedController == null)
         {
             return;
         }
 
-        if (lastAppliedController == selectedController && targetAnimator.runtimeAnimatorController == selectedController)
+        targetAnimator.enabled = true;
+        targetAnimator.speed = 1f;
+        targetAnimator.updateMode = AnimatorUpdateMode.Normal;
+        targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        targetAnimator.applyRootMotion = false;
+
+        if (lastAppliedController == selectedController &&
+            targetAnimator.runtimeAnimatorController == selectedController)
         {
             return;
         }
 
         targetAnimator.runtimeAnimatorController = selectedController;
         targetAnimator.Rebind();
+        targetAnimator.Play(0, 0, 0f);
         targetAnimator.Update(0f);
         lastAppliedController = selectedController;
     }
 
-    public void SetHealthData(int newSteps, float newSleepHours)
+    private void EnsureAnimator()
     {
-        steps = Mathf.Max(0, newSteps);
-        sleepHours = Mathf.Max(0f, newSleepHours);
-        ApplyBehavior();
+        if (targetAnimator == null)
+        {
+            targetAnimator = GetComponent<Animator>();
+        }
+
+        if (targetAnimator == null)
+        {
+            targetAnimator = GetComponentInChildren<Animator>(true);
+        }
+
+        if (targetAnimator == null)
+        {
+            targetAnimator = gameObject.AddComponent<Animator>();
+            Debug.Log("[HealthBehaviorAnimationController] Added missing Animator to health behavior dog root.");
+        }
+
+        if (targetAnimator == null && !hasWarnedAboutMissingAnimator)
+        {
+            hasWarnedAboutMissingAnimator = true;
+            Debug.LogWarning("[HealthBehaviorAnimationController] Animator was not found, so health behavior animation cannot play.");
+        }
     }
 
     private RuntimeAnimatorController UpdateRanksAndController()
@@ -207,7 +247,9 @@ public class HealthBehaviorAnimationController : MonoBehaviour
 
     private static RuntimeAnimatorController FindControllerAsset(string controllerName)
     {
-        string[] guids = AssetDatabase.FindAssets($"{controllerName} t:AnimatorController", new[] { "Assets/Dog_Pomeranian/Animator" });
+        string[] guids = AssetDatabase.FindAssets(
+            $"{controllerName} t:AnimatorController",
+            new[] { "Assets/Dog_Pomeranian/Animator" });
         if (guids.Length == 0)
         {
             return null;
@@ -218,3 +260,4 @@ public class HealthBehaviorAnimationController : MonoBehaviour
     }
 #endif
 }
+

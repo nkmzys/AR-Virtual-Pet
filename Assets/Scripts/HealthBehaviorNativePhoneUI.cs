@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using UnityEngine;
 
 public class HealthBehaviorNativePhoneUI : MonoBehaviour
@@ -18,13 +18,11 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
     private AndroidJavaObject resultText;
 #endif
 
-    public static HealthBehaviorNativePhoneUI Create(
-        HealthBehaviorAnimationController controller)
+    public static HealthBehaviorNativePhoneUI Create(HealthBehaviorAnimationController controller)
     {
         GameObject uiObject = new GameObject("Health Behavior Native Phone UI");
         uiObject.SetActive(false);
-        HealthBehaviorNativePhoneUI phoneUi =
-            uiObject.AddComponent<HealthBehaviorNativePhoneUI>();
+        HealthBehaviorNativePhoneUI phoneUi = uiObject.AddComponent<HealthBehaviorNativePhoneUI>();
         phoneUi.healthController = controller;
         uiObject.SetActive(true);
         return phoneUi;
@@ -88,11 +86,14 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
             return;
         }
 
+        if (sleepHours > 24f)
+        {
+            SetNativeResult("睡眠時間は24時間以下で入力してください。");
+            return;
+        }
+
         healthController.SetHealthData(steps, sleepHours);
-        string result =
-            $"歩数：{healthController.StepRankSymbol} / " +
-            $"睡眠：{healthController.SleepRankSymbol}\n" +
-            $"再生中：{healthController.CurrentBehaviorName}";
+        string result = GetCurrentResult();
         SetNativeResult(result);
         Debug.Log($"[HealthBehaviorNativePhoneUI] {result}");
     }
@@ -104,18 +105,12 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
             return;
         }
 
-        healthController =
-            FindAnyObjectByType<HealthBehaviorAnimationController>(
-                FindObjectsInactive.Include);
+        healthController = FindAnyObjectByType<HealthBehaviorAnimationController>(FindObjectsInactive.Include);
     }
 
     private static bool TryParseNonNegativeInt(string text, out int value)
     {
-        return int.TryParse(
-                text?.Trim(),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out value)
+        return int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value)
             && value >= 0;
     }
 
@@ -134,17 +129,11 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
 #if UNITY_ANDROID && !UNITY_EDITOR
     private void CreateNativeControls()
     {
-        using AndroidJavaClass unityPlayer =
-            new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-        activity =
-            unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+        using AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+        activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
 
-        int initialSteps = healthController != null
-            ? healthController.Steps
-            : 0;
-        float initialSleepHours = healthController != null
-            ? healthController.SleepHours
-            : 0f;
+        int initialSteps = healthController != null ? healthController.Steps : 0;
+        float initialSleepHours = healthController != null ? healthController.SleepHours : 0f;
 
         activity.Call("runOnUiThread", new AndroidJavaRunnable(() =>
         {
@@ -161,77 +150,38 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
 
     private void BuildNativeControls(int initialSteps, float initialSleepHours)
     {
-        using AndroidJavaObject window =
-            activity.Call<AndroidJavaObject>("getWindow");
-        using AndroidJavaObject decorView =
-            window.Call<AndroidJavaObject>("getDecorView");
-        using AndroidJavaObject rootView =
-            decorView.Call<AndroidJavaObject>("getRootView");
+        using AndroidJavaObject window = activity.Call<AndroidJavaObject>("getWindow");
+        using AndroidJavaObject decorView = window.Call<AndroidJavaObject>("getDecorView");
+        using AndroidJavaObject rootView = decorView.Call<AndroidJavaObject>("getRootView");
 
-        nativePanel =
-            new AndroidJavaObject("android.widget.LinearLayout", activity);
+        nativePanel = new AndroidJavaObject("android.widget.LinearLayout", activity);
         nativePanel.Call("setOrientation", 1);
-        nativePanel.Call(
-            "setPadding",
-            Dp(16),
-            Dp(14),
-            Dp(16),
-            Dp(16));
+        nativePanel.Call("setPadding", Dp(16), Dp(14), Dp(16), Dp(16));
         nativePanel.Call("setBackgroundColor", unchecked((int)0xe61a2029));
         nativePanel.Call("setElevation", (float)Dp(16));
 
-        using AndroidJavaObject title =
-            CreateTextView("健康データ入力", 20f, unchecked((int)0xffffffff));
-        nativePanel.Call(
-            "addView",
-            title,
-            CreateLinearLayoutParams(-1, Dp(44)));
+        using AndroidJavaObject title = CreateTextView("健康データ入力", 20f, unchecked((int)0xffffffff));
+        nativePanel.Call("addView", title, CreateLinearLayoutParams(-1, Dp(44)));
 
-        stepsInput = CreateEditText(
-            "歩数（例：8000）",
-            initialSteps.ToString(CultureInfo.InvariantCulture),
-            false);
-        nativePanel.Call(
-            "addView",
-            stepsInput,
-            CreateLinearLayoutParams(-1, Dp(56)));
+        stepsInput = CreateEditText("歩数 例: 8000", initialSteps.ToString(CultureInfo.InvariantCulture), false);
+        nativePanel.Call("addView", stepsInput, CreateLinearLayoutParams(-1, Dp(56)));
 
-        sleepHoursInput = CreateEditText(
-            "睡眠時間（例：7.5）",
-            initialSleepHours.ToString("0.##", CultureInfo.InvariantCulture),
-            true);
-        nativePanel.Call(
-            "addView",
-            sleepHoursInput,
-            CreateLinearLayoutParams(-1, Dp(56)));
+        sleepHoursInput = CreateEditText("睡眠時間 例: 7.5", initialSleepHours.ToString("0.##", CultureInfo.InvariantCulture), true);
+        nativePanel.Call("addView", sleepHoursInput, CreateLinearLayoutParams(-1, Dp(56)));
 
-        applyButton =
-            new AndroidJavaObject("android.widget.Button", activity);
+        applyButton = new AndroidJavaObject("android.widget.Button", activity);
         applyButton.Call("setText", "反映");
         applyButton.Call("setTextSize", 18f);
         applyButton.Call("setAllCaps", false);
-        applyButton.Call(
-            "setOnClickListener",
-            new NativeApplyClickListener(this));
-        nativePanel.Call(
-            "addView",
-            applyButton,
-            CreateLinearLayoutParams(-1, Dp(56)));
+        applyButton.Call("setOnClickListener", new NativeApplyClickListener(this));
+        nativePanel.Call("addView", applyButton, CreateLinearLayoutParams(-1, Dp(56)));
 
-        resultText =
-            CreateTextView(GetCurrentResult(), 15f, unchecked((int)0xffffffff));
+        resultText = CreateTextView(GetCurrentResult(), 15f, unchecked((int)0xffffffff));
         resultText.Call("setPadding", 0, Dp(8), 0, 0);
-        nativePanel.Call(
-            "addView",
-            resultText,
-            CreateLinearLayoutParams(-1, Dp(72)));
+        nativePanel.Call("addView", resultText, CreateLinearLayoutParams(-1, Dp(82)));
 
         int gravityTopStart = 0x00000030 | 0x00000003;
-        using AndroidJavaObject panelParams =
-            new AndroidJavaObject(
-                "android.widget.FrameLayout$LayoutParams",
-                Dp(340),
-                -2);
+        using AndroidJavaObject panelParams = new AndroidJavaObject("android.widget.FrameLayout$LayoutParams", Dp(340), -2);
         panelParams.Set("gravity", gravityTopStart);
         panelParams.Set("topMargin", Dp(24));
         panelParams.Set("leftMargin", Dp(16));
@@ -239,13 +189,9 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
         nativePanel.Call("bringToFront");
     }
 
-    private AndroidJavaObject CreateEditText(
-        string hint,
-        string initialValue,
-        bool allowDecimal)
+    private AndroidJavaObject CreateEditText(string hint, string initialValue, bool allowDecimal)
     {
-        AndroidJavaObject input =
-            new AndroidJavaObject("android.widget.EditText", activity);
+        AndroidJavaObject input = new AndroidJavaObject("android.widget.EditText", activity);
         input.Call("setHint", hint);
         input.Call("setText", initialValue);
         input.Call("setTextSize", 18f);
@@ -256,20 +202,14 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
 
         const int typeClassNumber = 0x00000002;
         const int typeNumberFlagDecimal = 0x00002000;
-        int inputType = allowDecimal
-            ? typeClassNumber | typeNumberFlagDecimal
-            : typeClassNumber;
+        int inputType = allowDecimal ? typeClassNumber | typeNumberFlagDecimal : typeClassNumber;
         input.Call("setInputType", inputType);
         return input;
     }
 
-    private AndroidJavaObject CreateTextView(
-        string value,
-        float textSize,
-        int textColor)
+    private AndroidJavaObject CreateTextView(string value, float textSize, int textColor)
     {
-        AndroidJavaObject text =
-            new AndroidJavaObject("android.widget.TextView", activity);
+        AndroidJavaObject text = new AndroidJavaObject("android.widget.TextView", activity);
         text.Call("setText", value);
         text.Call("setTextSize", textSize);
         text.Call("setTextColor", textColor);
@@ -278,26 +218,15 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
 
     private AndroidJavaObject CreateLinearLayoutParams(int width, int height)
     {
-        AndroidJavaObject layoutParams =
-            new AndroidJavaObject(
-                "android.widget.LinearLayout$LayoutParams",
-                width,
-                height);
-        layoutParams.Call(
-            "setMargins",
-            0,
-            Dp(4),
-            0,
-            Dp(4));
+        AndroidJavaObject layoutParams = new AndroidJavaObject("android.widget.LinearLayout$LayoutParams", width, height);
+        layoutParams.Call("setMargins", 0, Dp(4), 0, Dp(4));
         return layoutParams;
     }
 
     private int Dp(int value)
     {
-        using AndroidJavaObject resources =
-            activity.Call<AndroidJavaObject>("getResources");
-        using AndroidJavaObject metrics =
-            resources.Call<AndroidJavaObject>("getDisplayMetrics");
+        using AndroidJavaObject resources = activity.Call<AndroidJavaObject>("getResources");
+        using AndroidJavaObject metrics = resources.Call<AndroidJavaObject>("getDisplayMetrics");
         float density = metrics.Get<float>("density");
         return Mathf.RoundToInt(value * density);
     }
@@ -312,9 +241,9 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
         }
 
         return
-            $"歩数：{healthController.StepRankSymbol} / " +
-            $"睡眠：{healthController.SleepRankSymbol}\n" +
-            $"再生中：{healthController.CurrentBehaviorName}";
+            $"歩数: {healthController.StepRankSymbol}\n" +
+            $"睡眠時間: {healthController.SleepRankSymbol}\n" +
+            $"再生中: {healthController.CurrentBehaviorName}";
     }
 
     private void QueueNativeInput()
@@ -339,23 +268,15 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
             return string.Empty;
         }
 
-        using AndroidJavaObject editable =
-            input.Call<AndroidJavaObject>("getText");
+        using AndroidJavaObject editable = input.Call<AndroidJavaObject>("getText");
         return editable?.Call<string>("toString") ?? string.Empty;
     }
 
     private void HideKeyboard()
     {
-        using AndroidJavaObject inputMethodManager =
-            activity.Call<AndroidJavaObject>(
-                "getSystemService",
-                "input_method");
-        using AndroidJavaObject windowToken =
-            applyButton.Call<AndroidJavaObject>("getWindowToken");
-        inputMethodManager?.Call<bool>(
-            "hideSoftInputFromWindow",
-            windowToken,
-            0);
+        using AndroidJavaObject inputMethodManager = activity.Call<AndroidJavaObject>("getSystemService", "input_method");
+        using AndroidJavaObject windowToken = applyButton.Call<AndroidJavaObject>("getWindowToken");
+        inputMethodManager?.Call<bool>("hideSoftInputFromWindow", windowToken, 0);
         applyButton.Call("clearFocus");
     }
 
@@ -381,8 +302,7 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
 
         activity.Call("runOnUiThread", new AndroidJavaRunnable(() =>
         {
-            using AndroidJavaObject parent =
-                nativePanel.Call<AndroidJavaObject>("getParent");
+            using AndroidJavaObject parent = nativePanel.Call<AndroidJavaObject>("getParent");
             parent?.Call("removeView", nativePanel);
             stepsInput = null;
             sleepHoursInput = null;
@@ -408,6 +328,21 @@ public class HealthBehaviorNativePhoneUI : MonoBehaviour
         }
     }
 #else
+    private string GetCurrentResult()
+    {
+        TryFindHealthController();
+
+        if (healthController == null)
+        {
+            return "健康状態コントローラーが見つかりません。";
+        }
+
+        return
+            $"歩数: {healthController.StepRankSymbol}\n" +
+            $"睡眠時間: {healthController.SleepRankSymbol}\n" +
+            $"再生中: {healthController.CurrentBehaviorName}";
+    }
+
     private void SetNativeResult(string message)
     {
         Debug.Log($"[HealthBehaviorNativePhoneUI] {message}");

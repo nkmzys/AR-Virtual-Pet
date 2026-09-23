@@ -5,13 +5,20 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
+  - enabled: 1
+    path: Assets/MobileAR/Scenes/SimpleCameraHealthBehaviorScene.unity
+    guid: 26064e6927fef9d45a20fb4f680025e0
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
+  - enabled: 0
     path: Assets/Dog_Pomeranian/Scene/Dog_Pomeranian.unity
     guid: e22d4ed9b1f6489438f89880b775a26a
+  - enabled: 0
+    path: Assets/MobileAR/Scenes/MobileARHealthBehaviorScene.unity
+    guid: 5fbbf761eb1a5cd47a3ba2b45743c714
   m_configObjects:
+    UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: 90db8082754d8c74cb1740080998b0bf, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: 32c6b176d05d79f40afe2eb8561f8765, type: 2}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: fd5770ce729e73949ac99ed930b8a621, type: 2}

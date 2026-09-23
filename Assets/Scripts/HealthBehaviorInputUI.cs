@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,29 +16,29 @@ public class HealthBehaviorInputUI : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void EnsureRuntimeUi()
     {
+        if (FindAnyObjectByType<MobileHealthInputUI>(FindObjectsInactive.Include) != null)
+        {
+            return;
+        }
+
 #if UNITY_ANDROID && !UNITY_EDITOR
-        if (FindAnyObjectByType<HealthBehaviorNativePhoneUI>(
-                FindObjectsInactive.Include) != null)
+        if (FindAnyObjectByType<HealthBehaviorNativePhoneUI>(FindObjectsInactive.Include) != null)
         {
             return;
         }
 
         HealthBehaviorAnimationController androidController =
-            FindAnyObjectByType<HealthBehaviorAnimationController>(
-                FindObjectsInactive.Include);
+            FindAnyObjectByType<HealthBehaviorAnimationController>(FindObjectsInactive.Include);
         HealthBehaviorNativePhoneUI.Create(androidController);
-
         return;
 #else
-        if (FindAnyObjectByType<HealthBehaviorInputUI>(
-                FindObjectsInactive.Include) != null)
+        if (FindAnyObjectByType<HealthBehaviorInputUI>(FindObjectsInactive.Include) != null)
         {
             return;
         }
 
         HealthBehaviorAnimationController controller =
-            FindAnyObjectByType<HealthBehaviorAnimationController>(
-                FindObjectsInactive.Include);
+            FindAnyObjectByType<HealthBehaviorAnimationController>(FindObjectsInactive.Include);
         if (controller != null)
         {
             HealthBehaviorRuntimeUIFactory.Create(controller);
@@ -64,9 +64,7 @@ public class HealthBehaviorInputUI : MonoBehaviour
     {
         if (healthController == null)
         {
-            healthController =
-                FindAnyObjectByType<HealthBehaviorAnimationController>(
-                    FindObjectsInactive.Include);
+            healthController = FindAnyObjectByType<HealthBehaviorAnimationController>(FindObjectsInactive.Include);
         }
 
         if (applyButton != null)
@@ -106,6 +104,12 @@ public class HealthBehaviorInputUI : MonoBehaviour
             return;
         }
 
+        if (sleepHours > 24f)
+        {
+            SetResult("睡眠時間は24時間以下で入力してください。");
+            return;
+        }
+
         healthController.SetHealthData(steps, sleepHours);
         RefreshResult();
     }
@@ -124,9 +128,7 @@ public class HealthBehaviorInputUI : MonoBehaviour
 
         if (sleepHoursInput != null)
         {
-            sleepHoursInput.text = healthController.SleepHours.ToString(
-                "0.##",
-                CultureInfo.InvariantCulture);
+            sleepHoursInput.text = healthController.SleepHours.ToString("0.##", CultureInfo.InvariantCulture);
         }
     }
 
@@ -139,9 +141,9 @@ public class HealthBehaviorInputUI : MonoBehaviour
         }
 
         SetResult(
-            $"歩数：{healthController.StepRankSymbol} / " +
-            $"睡眠：{healthController.SleepRankSymbol} / " +
-            $"再生中：{healthController.CurrentBehaviorName}");
+            $"歩数: {healthController.StepRankSymbol}\n" +
+            $"睡眠時間: {healthController.SleepRankSymbol}\n" +
+            $"再生中: {healthController.CurrentBehaviorName}");
     }
 
     private void SetResult(string message)
@@ -156,7 +158,7 @@ public class HealthBehaviorInputUI : MonoBehaviour
 
     private static bool TryParseNonNegativeInt(string text, out int value)
     {
-        return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value)
+        return int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value)
             && value >= 0;
     }
 

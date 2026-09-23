@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -15,13 +15,11 @@ public static class HealthBehaviorUIBuilder
     public static void CreateSmartphoneUI()
     {
         Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-        HealthBehaviorAnimationController healthController =
-            Object.FindAnyObjectByType<HealthBehaviorAnimationController>();
+        HealthBehaviorAnimationController healthController = Object.FindAnyObjectByType<HealthBehaviorAnimationController>();
 
         if (healthController == null)
         {
-            throw new MissingReferenceException(
-                "HealthBehaviorAnimationController was not found in the main scene.");
+            throw new MissingReferenceException("HealthBehaviorAnimationController was not found in the main scene.");
         }
 
         GameObject existing = GameObject.Find(CanvasName);
@@ -44,78 +42,19 @@ public static class HealthBehaviorUIBuilder
         canvasObject.AddComponent<GraphicRaycaster>();
 
         GameObject panel = CreateUiObject("Input Panel", canvasObject.transform);
-        RectTransform panelRect = panel.GetComponent<RectTransform>();
-        panelRect.anchorMin = new Vector2(0f, 1f);
-        panelRect.anchorMax = new Vector2(0f, 1f);
-        panelRect.pivot = new Vector2(0f, 1f);
-        panelRect.anchoredPosition = new Vector2(32f, -32f);
-        panelRect.sizeDelta = new Vector2(720f, 500f);
+        SetTopLeftRect(panel.GetComponent<RectTransform>(), new Vector2(32f, -32f), new Vector2(720f, 500f));
         Image panelImage = panel.AddComponent<Image>();
         panelImage.color = new Color(0.05f, 0.08f, 0.12f, 0.9f);
 
-        CreateText(
-            "Title",
-            panel.transform,
-            font,
-            "健康データ入力",
-            40,
-            TextAnchor.MiddleCenter,
-            new Vector2(30f, -24f),
-            new Vector2(660f, 64f));
+        CreateText("Title", panel.transform, font, "健康データ入力", 40, TextAnchor.MiddleCenter, new Vector2(30f, -24f), new Vector2(660f, 64f));
+        CreateText("Steps Label", panel.transform, font, "歩数", 32, TextAnchor.MiddleLeft, new Vector2(40f, -112f), new Vector2(180f, 64f));
+        InputField stepsInput = CreateInputField("Steps Input", panel.transform, font, "例: 8000", InputField.ContentType.IntegerNumber, new Vector2(220f, -112f), new Vector2(440f, 64f));
 
-        CreateText(
-            "Steps Label",
-            panel.transform,
-            font,
-            "歩数",
-            32,
-            TextAnchor.MiddleLeft,
-            new Vector2(40f, -112f),
-            new Vector2(180f, 64f));
-        InputField stepsInput = CreateInputField(
-            "Steps Input",
-            panel.transform,
-            font,
-            "例：8000",
-            InputField.ContentType.IntegerNumber,
-            new Vector2(220f, -112f),
-            new Vector2(440f, 64f));
+        CreateText("Sleep Label", panel.transform, font, "睡眠時間", 32, TextAnchor.MiddleLeft, new Vector2(40f, -200f), new Vector2(180f, 64f));
+        InputField sleepInput = CreateInputField("Sleep Input", panel.transform, font, "例: 7.5", InputField.ContentType.DecimalNumber, new Vector2(220f, -200f), new Vector2(440f, 64f));
 
-        CreateText(
-            "Sleep Label",
-            panel.transform,
-            font,
-            "睡眠時間",
-            32,
-            TextAnchor.MiddleLeft,
-            new Vector2(40f, -200f),
-            new Vector2(180f, 64f));
-        InputField sleepInput = CreateInputField(
-            "Sleep Input",
-            panel.transform,
-            font,
-            "例：7.5",
-            InputField.ContentType.DecimalNumber,
-            new Vector2(220f, -200f),
-            new Vector2(440f, 64f));
-
-        Button applyButton = CreateButton(
-            "Apply Button",
-            panel.transform,
-            font,
-            "反映",
-            new Vector2(40f, -288f),
-            new Vector2(620f, 72f));
-
-        Text resultText = CreateText(
-            "Result Text",
-            panel.transform,
-            font,
-            string.Empty,
-            25,
-            TextAnchor.MiddleLeft,
-            new Vector2(40f, -384f),
-            new Vector2(640f, 84f));
+        Button applyButton = CreateButton("Apply Button", panel.transform, font, "反映", new Vector2(40f, -288f), new Vector2(620f, 72f));
+        Text resultText = CreateText("Result Text", panel.transform, font, string.Empty, 25, TextAnchor.MiddleLeft, new Vector2(40f, -384f), new Vector2(640f, 84f));
         resultText.horizontalOverflow = HorizontalWrapMode.Wrap;
         resultText.verticalOverflow = VerticalWrapMode.Overflow;
 
@@ -144,10 +83,7 @@ public static class HealthBehaviorUIBuilder
         EventSystem eventSystem = Object.FindAnyObjectByType<EventSystem>();
         if (eventSystem == null)
         {
-            GameObject eventSystemObject = new GameObject(
-                "EventSystem",
-                typeof(EventSystem),
-                typeof(InputSystemUIInputModule));
+            GameObject eventSystemObject = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             eventSystemObject.transform.SetAsLastSibling();
             return;
         }
@@ -171,19 +107,10 @@ public static class HealthBehaviorUIBuilder
         return gameObject;
     }
 
-    private static Text CreateText(
-        string name,
-        Transform parent,
-        Font font,
-        string value,
-        int fontSize,
-        TextAnchor alignment,
-        Vector2 anchoredPosition,
-        Vector2 size)
+    private static Text CreateText(string name, Transform parent, Font font, string value, int fontSize, TextAnchor alignment, Vector2 anchoredPosition, Vector2 size)
     {
         GameObject textObject = CreateUiObject(name, parent);
-        RectTransform rect = textObject.GetComponent<RectTransform>();
-        SetTopLeftRect(rect, anchoredPosition, size);
+        SetTopLeftRect(textObject.GetComponent<RectTransform>(), anchoredPosition, size);
         Text text = textObject.AddComponent<Text>();
         text.font = font;
         text.text = value;
@@ -193,41 +120,17 @@ public static class HealthBehaviorUIBuilder
         return text;
     }
 
-    private static InputField CreateInputField(
-        string name,
-        Transform parent,
-        Font font,
-        string placeholderValue,
-        InputField.ContentType contentType,
-        Vector2 anchoredPosition,
-        Vector2 size)
+    private static InputField CreateInputField(string name, Transform parent, Font font, string placeholderValue, InputField.ContentType contentType, Vector2 anchoredPosition, Vector2 size)
     {
         GameObject inputObject = CreateUiObject(name, parent);
-        RectTransform rect = inputObject.GetComponent<RectTransform>();
-        SetTopLeftRect(rect, anchoredPosition, size);
+        SetTopLeftRect(inputObject.GetComponent<RectTransform>(), anchoredPosition, size);
         Image background = inputObject.AddComponent<Image>();
         background.color = Color.white;
 
-        Text inputText = CreateText(
-            "Text",
-            inputObject.transform,
-            font,
-            string.Empty,
-            30,
-            TextAnchor.MiddleLeft,
-            new Vector2(16f, -4f),
-            new Vector2(size.x - 32f, size.y - 8f));
+        Text inputText = CreateText("Text", inputObject.transform, font, string.Empty, 30, TextAnchor.MiddleLeft, new Vector2(16f, -4f), new Vector2(size.x - 32f, size.y - 8f));
         inputText.color = Color.black;
 
-        Text placeholder = CreateText(
-            "Placeholder",
-            inputObject.transform,
-            font,
-            placeholderValue,
-            30,
-            TextAnchor.MiddleLeft,
-            new Vector2(16f, -4f),
-            new Vector2(size.x - 32f, size.y - 8f));
+        Text placeholder = CreateText("Placeholder", inputObject.transform, font, placeholderValue, 30, TextAnchor.MiddleLeft, new Vector2(16f, -4f), new Vector2(size.x - 32f, size.y - 8f));
         placeholder.color = new Color(0.35f, 0.35f, 0.35f, 0.7f);
         placeholder.fontStyle = FontStyle.Italic;
 
@@ -240,31 +143,16 @@ public static class HealthBehaviorUIBuilder
         return inputField;
     }
 
-    private static Button CreateButton(
-        string name,
-        Transform parent,
-        Font font,
-        string label,
-        Vector2 anchoredPosition,
-        Vector2 size)
+    private static Button CreateButton(string name, Transform parent, Font font, string label, Vector2 anchoredPosition, Vector2 size)
     {
         GameObject buttonObject = CreateUiObject(name, parent);
-        RectTransform rect = buttonObject.GetComponent<RectTransform>();
-        SetTopLeftRect(rect, anchoredPosition, size);
+        SetTopLeftRect(buttonObject.GetComponent<RectTransform>(), anchoredPosition, size);
         Image image = buttonObject.AddComponent<Image>();
         image.color = new Color(0.1f, 0.55f, 0.95f, 1f);
         Button button = buttonObject.AddComponent<Button>();
         button.targetGraphic = image;
 
-        Text labelText = CreateText(
-            "Text",
-            buttonObject.transform,
-            font,
-            label,
-            34,
-            TextAnchor.MiddleCenter,
-            Vector2.zero,
-            size);
+        Text labelText = CreateText("Text", buttonObject.transform, font, label, 34, TextAnchor.MiddleCenter, Vector2.zero, size);
         RectTransform labelRect = labelText.rectTransform;
         labelRect.anchorMin = Vector2.zero;
         labelRect.anchorMax = Vector2.one;
@@ -274,10 +162,7 @@ public static class HealthBehaviorUIBuilder
         return button;
     }
 
-    private static void SetTopLeftRect(
-        RectTransform rect,
-        Vector2 anchoredPosition,
-        Vector2 size)
+    private static void SetTopLeftRect(RectTransform rect, Vector2 anchoredPosition, Vector2 size)
     {
         rect.anchorMin = new Vector2(0f, 1f);
         rect.anchorMax = new Vector2(0f, 1f);
