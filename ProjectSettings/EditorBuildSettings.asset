@@ -11,6 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Dog_Pomeranian/Scene/Dog_Pomeranian.unity
     guid: e22d4ed9b1f6489438f89880b775a26a
+  - enabled: 0
+    path: Assets/Work/DogAnimationTest/Dog_AnimationPreview.unity
+    guid: dd11c234f1e142ccabb73f74332738d4
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: 32c6b176d05d79f40afe2eb8561f8765, type: 2}
