@@ -23,15 +23,10 @@ public class HealthBehaviorInputUI : MonoBehaviour
             return;
         }
 
-          HealthBehaviorAnimationController androidController =
-              FindAnyObjectByType<HealthBehaviorAnimationController>(
-                  FindObjectsInactive.Include);
-          if (androidController == null)
-          {
-              return;
-          }
-
-          HealthBehaviorNativePhoneUI.Create(androidController);
+        HealthBehaviorAnimationController androidController =
+            FindAnyObjectByType<HealthBehaviorAnimationController>(
+                FindObjectsInactive.Include);
+        HealthBehaviorNativePhoneUI.Create(androidController);
 
         return;
 #else
