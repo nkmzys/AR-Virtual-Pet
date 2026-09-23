@@ -28,6 +28,9 @@
 # Visual Studio cache directory
 .vs/
 
+# Local editor settings
+.vscode/
+
 # Gradle cache directory
 .gradle/
 
@@ -37,6 +40,7 @@ ExportedObj/
 *.csproj
 *.unityproj
 *.sln
+*.slnx
 *.suo
 *.tmp
 *.user
@@ -73,3 +77,10 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# XREAL SDK is downloaded separately from the official developer site.
+/ThirdParty/XREAL/*.tar.gz
+
+# Unity-generated Burst and backup folders
+*_BurstDebugInformation_DoNotShip/
+*_BackUpThisFolder_ButDontShipItWithYourGame/

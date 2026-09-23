@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5d78f4dd52a6d824a9178bd56f4caabb
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 267532
+  packageName: DOG Full Animations - Pug
+  packageVersion: 1.0
+  assetPath: Assets/Dog_Pug/Animator/Pug_3.controller
+  uploadId: 619356

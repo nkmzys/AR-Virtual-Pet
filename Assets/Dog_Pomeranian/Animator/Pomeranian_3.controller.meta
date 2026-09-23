@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 193d53cfe2f6e2e458c616f07ab57392
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 247486
+  packageName: DOG Full Animations - Pomeranian
+  packageVersion: 1.0
+  assetPath: Assets/Dog_Pomeranian/Animator/Pomeranian_3.controller
+  uploadId: 564348
