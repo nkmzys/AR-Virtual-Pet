@@ -1267,7 +1267,8 @@ MonoBehaviour:
   dogTransform: {fileID: 2041493954}
   sceneCamera: {fileID: 1270747314}
   baseDogPosition: {x: 0, y: -0.5, z: 5}
-  markerDogScale: {x: 3, y: 3, z: 3}
+  markerDogScale: {x: 4, y: 4, z: 4}
+  dogPositionOffset: {x: 0, y: 0.7, z: 0}
   forwardTiltDegrees: 55
   hideDogUntilMarkerFound: 1
   previewWithoutMarker: 1

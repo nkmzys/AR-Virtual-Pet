@@ -13,6 +13,8 @@ public class SimpleMarkerDogDetector : MonoBehaviour
     [SerializeField] private Camera sceneCamera;
     [SerializeField] private Vector3 baseDogPosition = new Vector3(0f, -0.55f, 2.2f);
     [SerializeField] private Vector3 markerDogScale = new Vector3(2.2f, 2.2f, 2.2f);
+    [Tooltip("Offset from the detected placement in world units. Positive Y raises the dog. Can be adjusted live in Play mode.")]
+    [SerializeField] private Vector3 dogPositionOffset = Vector3.zero;
     [Tooltip("Positive values tilt the whole dog forward toward the viewer. Does not change the animation bones.")]
     [SerializeField, Range(-60f, 60f)] private float forwardTiltDegrees;
     [SerializeField] private bool hideDogUntilMarkerFound = true;
@@ -63,6 +65,7 @@ public class SimpleMarkerDogDetector : MonoBehaviour
     private GameObject guideRoot;
     private RectTransform guideRect;
     private Transform facingPivot;
+    private Vector3 lockedMarkerPosition;
     private Transform nose;
     private Transform tail;
     private bool facingCalibrated;
@@ -165,6 +168,10 @@ public class SimpleMarkerDogDetector : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (hasLockedDogTransform && facingPivot != null)
+        {
+            facingPivot.position = lockedMarkerPosition + dogPositionOffset;
+        }
         // Sample the actual animated pose once, after the first Animator evaluation.
         // Later turns in the animation remain intact; no bones are overwritten.
         if (!facingCalibrated && hasLockedDogTransform && facingPivot != null &&
@@ -503,7 +510,8 @@ public class SimpleMarkerDogDetector : MonoBehaviour
         float normalizedY = (result.CenterY / Mathf.Max(1f, height)) - 0.5f;
         float x = normalizedX * 1.2f;
         float y = -normalizedY * 1.6f - 0.25f;
-        Vector3 position = new Vector3(x, y, baseDogPosition.z);
+        lockedMarkerPosition = new Vector3(x, y, baseDogPosition.z);
+        Vector3 position = lockedMarkerPosition + dogPositionOffset;
         if (facingPivot != null)
         {
             facingPivot.SetPositionAndRotation(position, Quaternion.identity);
