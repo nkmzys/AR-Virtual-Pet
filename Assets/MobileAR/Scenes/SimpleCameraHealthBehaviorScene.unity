@@ -3401,6 +3401,10 @@ MonoBehaviour:
   idleController: {fileID: 9100000, guid: 11fe775628b6fc649a3fb8650f1966b8, type: 2}
   happyController: {fileID: 9100000, guid: 5de801f0acd4cc3498221de7b3d528e6, type: 2}
   veryHappyController: {fileID: 9100000, guid: 080ca087c2b7df448abd6e0774b03101, type: 2}
+  transitionIdleClip: {fileID: 1827226128182048838, guid: c0cf8bcb6cf69634f8473cdcf2914d45, type: 3}
+  blendSeconds: 0.35
+  idlePauseSeconds: 0.5
+  maximumBoundaryWait: 2
   stepRank: 2
   sleepRank: 2
   currentBehaviorName: my_pome_very_happy

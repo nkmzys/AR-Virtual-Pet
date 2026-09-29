@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -18,6 +20,25 @@ public class HealthBehaviorAnimationController : MonoBehaviour
     [SerializeField] private RuntimeAnimatorController idleController;
     [SerializeField] private RuntimeAnimatorController happyController;
     [SerializeField] private RuntimeAnimatorController veryHappyController;
+
+    [Header("Behavior Transition")]
+    [SerializeField] private AnimationClip transitionIdleClip;
+    [SerializeField, Min(0.05f)] private float blendSeconds = 0.35f;
+    [SerializeField, Min(0f)] private float idlePauseSeconds = 0.5f;
+    [SerializeField, Min(0f)] private float maximumBoundaryWait = 2f;
+
+    private enum TransitionPhase { Stable, Waiting, ToIdle, Idle, ToBehavior }
+    private TransitionPhase phase;
+    private PlayableGraph graph;
+    private AnimationMixerPlayable mixer;
+    private AnimatorControllerPlayable playing;
+    private AnimationClipPlayable idlePlayable;
+    private RuntimeAnimatorController requestedController;
+    private string requestedBehaviorName;
+    private float phaseTime;
+    private float boundary;
+    private int boundaryState;
+    public bool IsTransitioning => phase != TransitionPhase.Stable;
 
     [Header("Debug")]
     [SerializeField] private HealthRank stepRank;
@@ -67,12 +88,9 @@ public class HealthBehaviorAnimationController : MonoBehaviour
 
     private void Update()
     {
-        if (steps == lastSteps && Mathf.Approximately(sleepHours, lastSleepHours))
-        {
-            return;
-        }
-
-        ApplyBehavior();
+        if (steps != lastSteps || !Mathf.Approximately(sleepHours, lastSleepHours))
+            ApplyBehavior();
+        UpdateTransition();
     }
 
     private void OnValidate()
@@ -102,34 +120,132 @@ public class HealthBehaviorAnimationController : MonoBehaviour
 
     private void ApplyBehavior()
     {
-        RuntimeAnimatorController selectedController = UpdateRanksAndController();
-
+        string previousName = currentBehaviorName;
+        requestedController = UpdateRanksAndController();
+        requestedBehaviorName = currentBehaviorName;
+        currentBehaviorName = previousName;
         lastSteps = steps;
         lastSleepHours = sleepHours;
+        if (!isActiveAndEnabled || requestedController == null) return;
 
         EnsureAnimator();
-        if (targetAnimator == null || selectedController == null)
+        if (!graph.IsValid())
         {
-            return;
+            targetAnimator.enabled = true;
+            targetAnimator.speed = 1f;
+            targetAnimator.updateMode = AnimatorUpdateMode.Normal;
+            targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            targetAnimator.applyRootMotion = false;
+            // The graph owns playback; preserve each controller's internal state machine.
+            targetAnimator.runtimeAnimatorController = null;
+            graph = PlayableGraph.Create("Health behavior transitions");
+            graph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
+            mixer = AnimationMixerPlayable.Create(graph, 2);
+            var output = AnimationPlayableOutput.Create(graph, "Dog", targetAnimator);
+            output.SetSourcePlayable(mixer);
+            ConnectBehavior();
+            if (transitionIdleClip != null)
+            {
+                idlePlayable = AnimationClipPlayable.Create(graph, transitionIdleClip);
+                idlePlayable.SetApplyFootIK(false);
+                graph.Connect(idlePlayable, 0, mixer, 1);
+            }
+            graph.Play();
+            graph.Evaluate(0f);
         }
+        RequestTransition();
+    }
 
-        targetAnimator.enabled = true;
-        targetAnimator.speed = 1f;
-        targetAnimator.updateMode = AnimatorUpdateMode.Normal;
-        targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-        targetAnimator.applyRootMotion = false;
-
-        if (lastAppliedController == selectedController &&
-            targetAnimator.runtimeAnimatorController == selectedController)
+    private void ConnectBehavior()
+    {
+        if (playing.IsValid())
         {
-            return;
+            graph.Disconnect(mixer, 0);
+            graph.DestroyPlayable(playing);
         }
+        playing = AnimatorControllerPlayable.Create(graph, requestedController);
+        graph.Connect(playing, 0, mixer, 0);
+        mixer.SetInputWeight(0, 1f);
+        mixer.SetInputWeight(1, 0f);
+        lastAppliedController = requestedController;
+        currentBehaviorName = requestedBehaviorName;
+    }
 
-        targetAnimator.runtimeAnimatorController = selectedController;
-        targetAnimator.Rebind();
-        targetAnimator.Play(0, 0, 0f);
-        targetAnimator.Update(0f);
-        lastAppliedController = selectedController;
+    private void RequestTransition()
+    {
+        if (phase != TransitionPhase.Stable || requestedController == lastAppliedController) return;
+        var state = playing.GetCurrentAnimatorStateInfo(0);
+        boundary = Mathf.Floor(state.normalizedTime) + 1f;
+        boundaryState = state.fullPathHash;
+        SetPhase(TransitionPhase.Waiting);
+    }
+
+    private void SetPhase(TransitionPhase next)
+    {
+        phase = next;
+        phaseTime = 0f;
+    }
+
+    private void UpdateTransition()
+    {
+        if (!graph.IsValid()) return;
+        phaseTime += Time.deltaTime;
+        float blend = Mathf.Clamp01(phaseTime / Mathf.Max(0.05f, blendSeconds));
+        switch (phase)
+        {
+            case TransitionPhase.Stable:
+                RequestTransition();
+                break;
+            case TransitionPhase.Waiting:
+                // A repeated Apply always uses the latest input; same behavior does not restart.
+                if (requestedController == lastAppliedController)
+                {
+                    SetPhase(TransitionPhase.Stable);
+                    break;
+                }
+                var state = playing.GetCurrentAnimatorStateInfo(0);
+                bool atBoundary = state.fullPathHash != boundaryState || state.normalizedTime >= boundary ||
+                    (!state.loop && state.normalizedTime >= 1f) || playing.IsInTransition(0);
+                if (atBoundary || phaseTime >= maximumBoundaryWait)
+                {
+                    if (!idlePlayable.IsValid())
+                    {
+                        // Older scenes without an assigned bridge clip retain functional switching.
+                        ConnectBehavior();
+                        SetPhase(TransitionPhase.Stable);
+                        break;
+                    }
+                    idlePlayable.SetTime(0);
+                    SetPhase(TransitionPhase.ToIdle);
+                }
+                break;
+            case TransitionPhase.ToIdle:
+                mixer.SetInputWeight(0, 1f - blend);
+                mixer.SetInputWeight(1, blend);
+                if (blend >= 1f) SetPhase(TransitionPhase.Idle);
+                break;
+            case TransitionPhase.Idle:
+                if (phaseTime >= idlePauseSeconds)
+                {
+                    ConnectBehavior();
+                    mixer.SetInputWeight(0, 0f);
+                    mixer.SetInputWeight(1, 1f);
+                    SetPhase(TransitionPhase.ToBehavior);
+                }
+                break;
+            case TransitionPhase.ToBehavior:
+                mixer.SetInputWeight(0, blend);
+                mixer.SetInputWeight(1, 1f - blend);
+                if (blend >= 1f) SetPhase(TransitionPhase.Stable);
+                break;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (graph.IsValid()) graph.Destroy();
+        phase = TransitionPhase.Stable;
+        lastAppliedController = null;
     }
 
     private void EnsureAnimator()

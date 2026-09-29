@@ -21,3 +21,25 @@ Compilation passed against local Unity assemblies. Actual device orientation rem
 
 User confirmed Facing v2 faces forward on device. Added Forward Tilt Degrees (positive pitches the entire dog forward/down toward the viewer) and live Marker Dog Scale updates. Tilt is an absolute offset on the unanimated pivot after yaw calibration; default zero preserves the verified orientation.
 Editor-only Preview Without Marker displays the animated dog at centered-marker placement in Play mode, using the same calibration path. This flag and preview bypass are compiled out of APK builds. Use Game view with portrait aspect ratio. Adjust the detector component, not animated bones. Play-mode values revert on Stop: record scale/tilt and re-enter them after stopping, then save the scene. This tilts the entire body; it is not eye/head gaze tracking.
+
+## Apply feedback and behavior transitions
+
+HealthBehaviorAnimationController now uses a PlayableGraph to blend the active AnimatorController through 077_Idle_Loop into the requested controller. Identical classifications preserve playback. Changed classifications wait for the current state boundary (maximum 2 seconds), blend to idle for 0.35 seconds, pause 0.5 seconds, then blend into the latest requested controller for 0.35 seconds. Inputs received during a blend are coalesced; another change during the final blend is handled afterward. Hidden dogs use the latest inputs when enabled. Graphs are disposed on disable.
+MobileHealthInputUI shows a two-second Japanese applied notification only for valid input and refreshes the playing/changing status. OS font fallback is used for Japanese; verify glyph rendering on the target Android device.
+SimpleCameraHealthBehaviorScene and MobileARSceneBuilder assign the existing 077_Idle_Loop clip. No source animation assets or dog position/scale/tilt code changed. Dedicated lying-to-standing routes are not implemented in this first version.
+Validation: compiled runtime with and without UNITY_EDITOR, compiled scene builder, git diff --check passed. Play-mode/device transition appearance has NOT been verified.
+Manual checks in editor preview / APK:
+- 9000/7.5 -> 10000/8: notification, no restart (same very-happy class).
+- 9000/7.5 -> 7000/6: wait, idle bridge, then idle behavior.
+- 7000/6 -> 4000/8: walk-request behavior.
+- 9000/4: sleepy behavior.
+- 9000/6: happy behavior.
+- Rapid Apply changes: final behavior matches latest input.
+- Invalid/negative steps or sleep >24: error, no success notification/change.
+- Apply before marker detection: latest selected behavior starts on first display.
+- Verify existing dog direction, tilt, scale and position remain as configured.
+
+## ???????????????
+
+- ????AR?AR????????????????????????
+- ???????????????????????????????????????????????????????????????

@@ -141,6 +141,8 @@ public static class MobileARSceneBuilder
         SetObjectReference(serializedController, "idleController", FindAnimatorController("my_pome_idle"));
         SetObjectReference(serializedController, "happyController", FindAnimatorController("my_pome_happy"));
         SetObjectReference(serializedController, "veryHappyController", FindAnimatorController("my_pome_very_happy"));
+        SetObjectReference(serializedController, "transitionIdleClip",
+            AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Dog_Pomeranian/Ani/077_Idle_Loop.fbx"));
         SetInt(serializedController, "steps", 10000);
         SetFloat(serializedController, "sleepHours", 8f);
         serializedController.ApplyModifiedPropertiesWithoutUndo();
