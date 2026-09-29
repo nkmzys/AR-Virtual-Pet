@@ -13,7 +13,16 @@ public class SimpleMarkerDogDetector : MonoBehaviour
     [SerializeField] private Camera sceneCamera;
     [SerializeField] private Vector3 baseDogPosition = new Vector3(0f, -0.55f, 2.2f);
     [SerializeField] private Vector3 markerDogScale = new Vector3(2.2f, 2.2f, 2.2f);
+    [Tooltip("Positive values tilt the whole dog forward toward the viewer. Does not change the animation bones.")]
+    [SerializeField, Range(-60f, 60f)] private float forwardTiltDegrees;
     [SerializeField] private bool hideDogUntilMarkerFound = true;
+
+#if UNITY_EDITOR
+    [Header("Editor Preview (Play Mode Only)")]
+    [Tooltip("Show the animated dog without a marker in the Game view. Ignored in APK builds.")]
+    [SerializeField] private bool previewWithoutMarker;
+    private bool previewActive;
+#endif
 
     [Header("Detection")]
     [SerializeField, Range(0.05f, 1f)] private float scanInterval = 0.18f;
@@ -53,6 +62,12 @@ public class SimpleMarkerDogDetector : MonoBehaviour
     private Image[] guideCorners;
     private GameObject guideRoot;
     private RectTransform guideRect;
+    private Transform facingPivot;
+    private Transform nose;
+    private Transform tail;
+    private bool facingCalibrated;
+    private Quaternion calibratedFacing = Quaternion.identity;
+    private Vector3 tiltAxis = Vector3.right;
     private const bool KeepDogVisibleAfterFirstMarkerFound = true;
 
     private void Awake()
@@ -72,6 +87,20 @@ public class SimpleMarkerDogDetector : MonoBehaviour
         if (dogRoot != null && hideDogUntilMarkerFound)
         {
             dogRoot.SetActive(false);
+        }
+
+        if (dogTransform != null)
+        {
+            // Placement belongs outside the hierarchy controlled by the Animator.
+            facingPivot = new GameObject("Mobile Dog Facing Pivot").transform;
+            facingPivot.SetParent(dogTransform.parent, false);
+            facingPivot.SetPositionAndRotation(dogTransform.position, Quaternion.identity);
+            dogTransform.SetParent(facingPivot, true);
+            foreach (Transform bone in dogTransform.GetComponentsInChildren<Transform>(true))
+            {
+                if (bone.name == "Bone_Nose") nose = bone;
+                if (bone.name == "Bone_tail_00") tail = bone;
+            }
         }
 
         SetStatus("Show dog marker to camera.");
@@ -99,6 +128,30 @@ public class SimpleMarkerDogDetector : MonoBehaviour
 
     private void Update()
     {
+#if UNITY_EDITOR
+        if (previewWithoutMarker)
+        {
+            if (!previewActive)
+            {
+                // Use the same placement and animation path as a centered marker.
+                width = height = 2;
+                ApplyMarkerResult(new DetectionResult(1, 1, 1, 1f));
+                hasLockedDogTransform = true;
+                previewActive = true;
+                SetMarkerVisible(true, "Editor preview: adjust scale and forward tilt in Inspector.");
+            }
+            return;
+        }
+        if (previewActive)
+        {
+            previewActive = false;
+            hasFoundMarker = false;
+            hasLockedDogTransform = false;
+            facingCalibrated = false;
+            consecutiveDetections = 0;
+            SetMarkerVisible(false, "Show dog marker to camera.");
+        }
+#endif
         if (Time.unscaledTime < nextScanTime)
         {
             UpdateGuideLayout();
@@ -108,6 +161,33 @@ public class SimpleMarkerDogDetector : MonoBehaviour
         UpdateGuideLayout();
         nextScanTime = Time.unscaledTime + scanInterval;
         ScanCameraFrame();
+    }
+
+    private void LateUpdate()
+    {
+        // Sample the actual animated pose once, after the first Animator evaluation.
+        // Later turns in the animation remain intact; no bones are overwritten.
+        if (!facingCalibrated && hasLockedDogTransform && facingPivot != null &&
+            dogTransform.gameObject.activeInHierarchy && sceneCamera != null && nose != null && tail != null)
+        {
+            Vector3 forward = Vector3.ProjectOnPlane(nose.position - tail.position, Vector3.up);
+            Vector3 toCamera = Vector3.ProjectOnPlane(sceneCamera.transform.position - dogTransform.position, Vector3.up);
+            if (forward.sqrMagnitude > 0.000001f && toCamera.sqrMagnitude > 0.000001f)
+            {
+                float yaw = Vector3.SignedAngle(forward, toCamera, Vector3.up);
+                facingPivot.Rotate(Vector3.up, yaw, Space.World);
+                calibratedFacing = facingPivot.rotation;
+                tiltAxis = Vector3.Cross(Vector3.up, toCamera.normalized).normalized;
+                facingCalibrated = true;
+                Debug.Log($"[MobileDogFacing v2] Corrected animated facing by {yaw:0.0} degrees.");
+            }
+        }
+        if (facingCalibrated && facingPivot != null)
+        {
+            // Absolute offset: live Inspector edits must not accumulate each frame.
+            facingPivot.rotation = Quaternion.AngleAxis(forwardTiltDegrees, tiltAxis) * calibratedFacing;
+            dogTransform.localScale = markerDogScale;
+        }
     }
 
     private void ScanCameraFrame()
@@ -423,8 +503,18 @@ public class SimpleMarkerDogDetector : MonoBehaviour
         float normalizedY = (result.CenterY / Mathf.Max(1f, height)) - 0.5f;
         float x = normalizedX * 1.2f;
         float y = -normalizedY * 1.6f - 0.25f;
-        dogTransform.position = new Vector3(x, y, baseDogPosition.z);
-        dogTransform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        Vector3 position = new Vector3(x, y, baseDogPosition.z);
+        if (facingPivot != null)
+        {
+            facingPivot.SetPositionAndRotation(position, Quaternion.identity);
+            dogTransform.localPosition = Vector3.zero;
+            dogTransform.localRotation = Quaternion.identity;
+            facingCalibrated = false;
+        }
+        else
+        {
+            dogTransform.position = position;
+        }
         dogTransform.localScale = markerDogScale;
     }
 
