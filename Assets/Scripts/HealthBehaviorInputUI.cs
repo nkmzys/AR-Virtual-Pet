@@ -16,6 +16,8 @@ public class HealthBehaviorInputUI : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void EnsureRuntimeUi()
     {
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Experiment1Text") return;
+
 #if UNITY_ANDROID && !UNITY_EDITOR
         if (FindAnyObjectByType<HealthBehaviorNativePhoneUI>(
                 FindObjectsInactive.Include) != null)
